@@ -39,7 +39,7 @@ export default function Admin(){
 
   if(!ok)return(<div className="adm"><section className="panel"><h2 style={{marginTop:0}}>{lupa?'🔓 Lupa Password Admin':'🔧 Login Admin'}</h2>
     {lupa?<>
-      <p style={{margin:'0 0 6px',opacity:.85}}>Masukkan kode pemulihan dari file <code>config.php</code> (baris <code>RECOVERY_CODE</code>) di folder <code>programmer dan robot</code>. Atau, lihat/ubah langsung kolom <code>password</code> di tabel <code>admins</code> lewat HeidiSQL.</p>
+      <p style={{margin:'0 0 6px',opacity:.85}}>Masukkan kode pemulihan (tersimpan di Supabase: Table Editor, tabel <code>cb_config</code>, baris <code>recovery_code</code>). Atau, lihat/ubah langsung kolom <code>password</code> di tabel <code>cb_admins</code> lewat Table Editor Supabase.</p>
       <label>Username admin<input value={u} onChange={e=>setU(e.target.value)}/></label>
       <label>Kode pemulihan<input type="password" value={rc} onChange={e=>setRc(e.target.value)} autoComplete="off"/></label>
       <label>Password baru (min. 6 karakter)<input type="password" value={n1} onChange={e=>setN1(e.target.value)} autoComplete="new-password"/></label>
@@ -54,7 +54,7 @@ export default function Admin(){
   </section></div>);
   if(!d)return<div className="adm"><section className="panel">{!err?'Memuat data...':<>
     <h3 style={{margin:'0 0 6px'}}>⚠️ Dasbor belum bisa dimuat</h3><p style={{margin:'0 0 8px'}}>{err}</p>
-    {/terhubung/i.test(err)&&<p style={{margin:'0 0 10px',opacity:.85}}>Cek: Laragon sudah <b>Start All</b> (Apache dan MySQL hijau), dan buka <code>{storage.apiUrl}?a=ping</code> di tab baru. Kalau tidak menampilkan <code>{'{"ok":true}'}</code>, berarti server atau file <code>api.php</code>-nya bermasalah.</p>}
+    {/terhubung/i.test(err)&&<p style={{margin:'0 0 10px',opacity:.85}}>Cek: koneksi internet, isi <code>.env</code> (<code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code>), dan pastikan project Supabase tidak sedang dijeda (paused). Alamat yang dipakai: <code>{storage.apiUrl}</code>.</p>}
     <div className="row"><button className="btn pri" onClick={()=>{setErr('');load()}}>🔄 Coba lagi</button><button className="btn" onClick={()=>{storage.adminLogout();setOk(false);setErr('')}}>Ke halaman login</button><a className="btn" href="#/" onClick={toGame}>⬅ Ke game</a></div></>}</section></div>;
   const byL={};d.levels.forEach(l=>byL[+l.level]=l);
   const rows=Array.from({length:15},(_,i)=>{const l=byL[i]||{};return{i,plays:+l.plays||0,wins:+l.wins||0,bugs:+l.bugs||0,best:l.best_secs==null?null:+l.best_secs,bestName:l.best_name,avg:l.avg_secs==null?null:+l.avg_secs}});
