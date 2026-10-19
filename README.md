@@ -7,7 +7,8 @@ Susun kartu perintah, jalankan robot, hindari bug, dan capai finish!
 
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-5-646CFF?logo=vite&logoColor=white)
-![PHP](https://img.shields.io/badge/PHP-MySQL-777BB4?logo=php&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white)
 
 Dibuat oleh **[MRikoKuswoyo](https://github.com/MRikoKuswoyo)**
 
@@ -24,7 +25,7 @@ Dibuat oleh **[MRikoKuswoyo](https://github.com/MRikoKuswoyo)**
 - **⭐ Bintang dan papan peringkat** antar siswa.
 - **🎬 Tutorial animasi** 12 slide dengan narasi suara bahasa Indonesia.
 - **Dashboard Admin** (`/#/admin`): ringkasan, daftar siswa, riwayat main, ekspor CSV, kelola akun admin dan reset PIN siswa.
-- **Dua mode penyimpanan**: database (PHP + MySQL) bila server tersedia, jika tidak otomatis memakai `localStorage`.
+- **Dua mode penyimpanan**: database **Supabase** bila terhubung, jika tidak otomatis memakai `localStorage` di perangkat. Dashboard admin hanya bisa dipakai saat Supabase terhubung.
 
 ## 🚀 Menjalankan
 
@@ -35,26 +36,52 @@ npm run build      # hasil build ada di folder dist
 npm run check      # memastikan semua level bisa diselesaikan
 ```
 
-Tanpa server PHP, game tetap jalan dan skor tersimpan di browser (`localStorage`).
+Tanpa Supabase, game tetap jalan dan skor tersimpan di browser (`localStorage`).
 
-## 🗄️ Database dan Admin (Laragon)
+## 🗄️ Database dan Admin (Supabase)
 
-1. Salin folder project ini ke `C:\laragon\www\programmer dan robot`.
-2. Buka Laragon lalu klik **Start All** (Apache dan MySQL harus hijau).
-3. Salin `config.sample.php` menjadi `config.php`, lalu isi:
-   - `DB_NAME` (bawaan: `programmer dan robot`)
-   - `ADMIN_USER` dan `ADMIN_PASS` (**wajib diganti**)
-   - `SECRET` (teks acak panjang, **wajib diganti**)
-   - `RECOVERY_CODE` (opsional, untuk fitur "Lupa password?")
-4. Buka sekali: `http://localhost/programmer%20dan%20robot/setup.php`. Database dan tabel dibuat otomatis.
-5. Tes API: `http://localhost/programmer%20dan%20robot/api.php?a=ping` harus menampilkan `{"ok":true}`.
-6. Jalankan `npm run dev`, lalu masuk admin di `http://localhost:5173/#/admin`.
+Game memakai [Supabase](https://supabase.com) (PostgreSQL). Tabel dikunci, dan frontend hanya memanggil fungsi RPC berawalan `cb_` (misalnya `cb_login`, `cb_register`, `cb_admin_login`). Kunci **anon/publishable** memang boleh publik, tetapi **jangan pernah** memakai kunci `service_role` di frontend.
 
-Game memanggil `/coderbot-api/api.php`. Saat `npm run dev`, Vite meneruskannya ke Apache Laragon (lihat `vite.config.js`), jadi cukup port 5173 yang perlu terbuka di firewall.
+### 1. Siapkan project Supabase
 
-**Dibuka dari HP atau komputer lain:** jalankan `npm run dev`, lalu buka `http://IP-LAPTOP:5173` (IP dari `ipconfig`). Laragon harus tetap Start All.
+1. Buat project baru di [supabase.com](https://supabase.com).
+2. Buka **SQL Editor**, lalu jalankan isi file [`supabase/schema.sql`](supabase/schema.sql). Ini membuat tabel `cb_admins`, `cb_config`, `cb_plays`, `cb_progress`, `cb_sessions`, `cb_students`, `cb_throttle` dan semua fungsi `cb_*`.
+3. Buka **Project Settings → API**, lalu salin **Project URL** dan **anon/publishable key**.
 
-**Keamanan:** login admin dan PIN siswa dibatasi, salah 5 kali dikunci 5 menit. Jangan membagikan `config.php` (berisi `SECRET` dan password admin).
+### 2. Isi konfigurasi lokal
+
+Salin `.env.example` menjadi `.env`, lalu isi:
+
+```env
+VITE_SUPABASE_URL=https://ID-PROJECT-KAMU.supabase.co
+VITE_SUPABASE_ANON_KEY=kunci-anon-atau-publishable-kamu
+```
+
+File `.env` sudah ada di `.gitignore`, jadi tidak ikut ter-upload ke GitHub. Setelah mengubah `.env`, jalankan ulang `npm run dev`.
+
+### 3. Buat admin pertama
+
+1. Buka **Table Editor → `cb_admins`** di Supabase.
+2. Tambahkan baris dengan `username` dan `password` (minimal 6 karakter).
+3. Masuk lewat `http://localhost:5173/#/admin`. Admin lain bisa ditambahkan dari dalam dashboard.
+
+Kode pemulihan untuk **"Lupa password?"** tersimpan di tabel `cb_config`, baris `recovery_code`.
+
+### Cek koneksi
+
+Buka DevTools (F12) → tab **Network**, lalu cari request `rpc/cb_ping`. Jawaban `{"ok":true}` berarti game terhubung ke Supabase. Jika dashboard admin menampilkan pesan *"Admin butuh database Supabase (tidak terhubung)"*, periksa isi `.env` (atau Environment Variables di Vercel) dan pastikan project Supabase tidak sedang dijeda (paused).
+
+**Keamanan:** login admin dan PIN siswa dibatasi, salah beberapa kali akan dikunci sementara (tabel `cb_throttle`). Jangan membagikan kunci `service_role` dan password admin.
+
+## 🌐 Deploy ke Vercel
+
+1. Hubungkan repositori GitHub ke Vercel (Framework: **Vite**, Build: `npm run build`, Output: `dist`).
+2. Buka **Settings → Environment Variables**, lalu tambahkan:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+3. **Redeploy.** Variabel berawalan `VITE_` dimasukkan saat proses build, jadi deployment lama tidak akan membacanya.
+
+Setiap `git push` ke branch `main` akan men-deploy ulang otomatis.
 
 ## 🔊 Suara narasi tutorial
 
@@ -63,18 +90,14 @@ Rekaman ada di `public/voice/01.mp3` sampai `12.mp3` (satu file per slide). Nask
 ## 🗂️ Struktur project
 
 ```
-src/            kode game (React): game.js, Board, Tutorial, Admin, storage
-public/voice/   rekaman narasi tutorial
-scripts/        pembuat dan pemeriksa level
-api.php         API (PHP + MySQL)
-schema.php      pembuat tabel otomatis
-setup.php       pengecek dan pembuat database
-config.sample.php  contoh konfigurasi
+src/               kode game (React): game.js, Board, Tutorial, Admin, storage
+public/voice/      rekaman narasi tutorial
+scripts/           pembuat dan pemeriksa level
+supabase/          skema database Supabase (schema.sql)
+.env.example       contoh konfigurasi Supabase
 ```
 
-## 🌐 Deploy
-
-Frontend bisa di-deploy ke Vercel (Framework: Vite, Build: `npm run build`, Output: `dist`). Vercel tidak menjalankan PHP, jadi di sana game memakai `localStorage`. Untuk database dan admin online, gunakan hosting PHP + MySQL terpisah dan arahkan frontend lewat `VITE_API_URL`.
+> Catatan: `api.php`, `schema.php`, `setup.php`, `config.sample.php`, `database.sql`, dan proxy Laragon di `vite.config.js` adalah sisa versi lama (PHP + MySQL). Semuanya tidak dipakai lagi sejak database pindah ke Supabase.
 
 ## 👤 Pembuat
 
